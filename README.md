@@ -13,6 +13,7 @@ Personal collection of custom skills for [Claude Code](https://claude.ai/claude-
 | Skill | Description |
 |-------|-------------|
 | [senior-engineer](engineering/senior-engineer/) | 资深工程师思维 — 代码质量标准、架构判断力、审查检查点 |
+| [code-review](engineering/code-review/) | 代码审查 — 安全→正确性→性能→可维护性，任何语言通用 |
 | [project-takeover](engineering/project-takeover/) | 接手/二开项目 — 5 分钟摸清陌生代码库的系统方法 |
 | [project-bootstrap](engineering/project-bootstrap/) | 新建项目 — 技术选型、项目结构、从零到部署的完整流程 |
 | [frontend-dev](engineering/frontend-dev/) | 前端开发 — 数据加载三层架构、状态管理、组件设计、性能优化 |
@@ -52,26 +53,37 @@ Personal collection of custom skills for [Claude Code](https://claude.ai/claude-
 ## Usage
 
 ```bash
+# 思维挖掘
+/polanyi 我对 AI 时代的内容创作有一种矛盾感
+/polanyi --mode create 关于隐性知识的文章
+
 # 接手一个陌生项目
 /project-takeover /path/to/project
 
 # 从零开始新项目
-/project-bootstrap 我要做一个量化交易监控平台
+/project-bootstrap 我要做一个社交 app
 
 # 写前端功能
-/frontend-dev 做一个带筛选和分页的交易记录表
+/frontend-dev 做一个带筛选和分页的用户列表
 
 # 写后端 API
 /backend-dev 设计一个用户认证系统
 
 # 数据库设计
-/database-ops 设计交易记录表，需要按时间和币种查询
+/database-ops 设计用户表和关注关系表
 
 # 检查代码质量
 /senior-engineer 审查这个 PR
 
 # 排查线上问题
 /debug-method 页面打开后所有请求都显示"已取消"
+
+# 多顾问决策
+/advisor 要不要把现有产品从 Web 迁移到 App
+
+# 单独请教某位顾问
+/munger 分析一下知识付费这个商业模式
+/jobs 审视一下这个产品的用户体验
 ```
 
 ## License
