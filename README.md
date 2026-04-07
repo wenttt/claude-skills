@@ -1,7 +1,7 @@
 # Taven's Claude Code Skills
 
-> 独立开发者 Taven 的 Claude Code 技能库。
-> 工程、思维、创作、决策——把我踩过的坑和想明白的事变成可复用的 AI 工作流。
+> Taven 的 Claude Code 技能库。
+> 工程、思维、创作、决策——把踩过的坑和想明白的事变成可复用的 AI 工作流。
 
 ## Skills
 
@@ -23,11 +23,6 @@
 | [system-design](engineering/system-design/) | 系统架构 — 缓存/解耦/降级/背压的通用设计模式 |
 | [deploy-safety](engineering/deploy-safety/) | 安全部署 — 部署前/中/后检查、健康检查、回滚策略 |
 | [debug-method](engineering/debug-method/) | 系统排错 — 四步定位法、常见 bug 模式速查 |
-
-### Creation 内容创作
-| Skill | Description |
-|-------|-------------|
-| [content-create](creation/content-create/) | 自媒体内容创作 — 经典模式（标准 SOP）和深挖模式（Polanyi 隐性知识增强），支持抖音+公众号 |
 
 ### Decision 决策系统
 | Skill | Description |
@@ -84,12 +79,6 @@
 # 排查线上问题
 /debug-method 页面打开后所有请求都显示"已取消"
 
-# 内容创作（经典模式，快速出稿）
-/content-create --mode classic --platform douyin 为什么学了那么多技能还是赚不到钱
-
-# 内容创作（深挖模式，先挖隐性认知再写）
-/content-create --mode deep --platform wechat 不敢收钱这件事
-
 # 多顾问决策
 /advisor 要不要把现有产品从 Web 迁移到 App
 
@@ -100,9 +89,7 @@
 
 ## About
 
-Built by [Taven](https://github.com/wenttt) — 独立开发者，一人公司，用 AI 做杠杆。
-
-这些 skill 不是从文档里抄的，是从真实项目里长出来的。每一条规则背后都有一个踩过的坑或者想明白的判断。
+Built by [Taven](https://github.com/wenttt)。
 
 ## License
 
