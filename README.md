@@ -1,6 +1,7 @@
-# Claude Code Skills
+# Taven's Claude Code Skills
 
-Personal collection of custom skills for [Claude Code](https://claude.ai/claude-code).
+> 独立开发者 Taven 的 Claude Code 技能库。
+> 工程、思维、创作、决策——把我踩过的坑和想明白的事变成可复用的 AI 工作流。
 
 ## Skills
 
@@ -96,6 +97,12 @@ Personal collection of custom skills for [Claude Code](https://claude.ai/claude-
 /munger 分析一下知识付费这个商业模式
 /jobs 审视一下这个产品的用户体验
 ```
+
+## About
+
+Built by [Taven](https://github.com/wenttt) — 独立开发者，一人公司，用 AI 做杠杆。
+
+这些 skill 不是从文档里抄的，是从真实项目里长出来的。每一条规则背后都有一个踩过的坑或者想明白的判断。
 
 ## License
 

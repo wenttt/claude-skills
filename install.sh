@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install Claude Code skills by symlinking to ~/.claude/skills/ and ~/.claude/commands/
+# Taven's Claude Code Skills — install by symlinking to ~/.claude/skills/
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILLS_DIR="$HOME/.claude/skills"
@@ -64,4 +64,4 @@ else
 fi
 
 echo ""
-echo "Done. Restart Claude Code to pick up new skills."
+echo "Done. Taven's skills installed. Restart Claude Code to pick up."
