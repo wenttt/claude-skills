@@ -23,6 +23,11 @@ Personal collection of custom skills for [Claude Code](https://claude.ai/claude-
 | [deploy-safety](engineering/deploy-safety/) | 安全部署 — 部署前/中/后检查、健康检查、回滚策略 |
 | [debug-method](engineering/debug-method/) | 系统排错 — 四步定位法、常见 bug 模式速查 |
 
+### Creation 内容创作
+| Skill | Description |
+|-------|-------------|
+| [content-create](creation/content-create/) | 自媒体内容创作 — 经典模式（标准 SOP）和深挖模式（Polanyi 隐性知识增强），支持抖音+公众号 |
+
 ### Decision 决策系统
 | Skill | Description |
 |-------|-------------|
@@ -77,6 +82,12 @@ Personal collection of custom skills for [Claude Code](https://claude.ai/claude-
 
 # 排查线上问题
 /debug-method 页面打开后所有请求都显示"已取消"
+
+# 内容创作（经典模式，快速出稿）
+/content-create --mode classic --platform douyin 为什么学了那么多技能还是赚不到钱
+
+# 内容创作（深挖模式，先挖隐性认知再写）
+/content-create --mode deep --platform wechat 不敢收钱这件事
 
 # 多顾问决策
 /advisor 要不要把现有产品从 Web 迁移到 App
