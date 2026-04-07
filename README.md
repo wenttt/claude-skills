@@ -22,6 +22,26 @@ Personal collection of custom skills for [Claude Code](https://claude.ai/claude-
 | [deploy-safety](engineering/deploy-safety/) | 安全部署 — 部署前/中/后检查、健康检查、回滚策略 |
 | [debug-method](engineering/debug-method/) | 系统排错 — 四步定位法、常见 bug 模式速查 |
 
+### Decision 决策系统
+| Skill | Description |
+|-------|-------------|
+| [advisor](decision/advisor/) | 多顾问决策系统总调度器 — 描述问题，自动按会诊顺序调度顾问团队 |
+| [invest](decision/invest/) | 投资将军 — 调度 6 位投资专家进行多维度投资分析 |
+| [munger](decision/munger/) | 查理·芒格 — 多维决策、风险识别、跨学科分析 |
+| [buffett](decision/buffett/) | 沃伦·巴菲特 — 护城河、聚焦、拒绝决策 |
+| [drucker](decision/drucker/) | 彼得·德鲁克 — 商务增长、价值定义、用户需求 |
+| [jobs](decision/jobs/) | 史蒂夫·乔布斯 — 产品体验、内容设计、用户交互 |
+| [musk](decision/musk/) | 埃隆·马斯克 — 执行推动、第一性原理、打破惯性 |
+| [hara](decision/hara/) | 原研哉 — 系统极简、结构审查、流程优化 |
+| [wittgenstein](decision/wittgenstein/) | 维特根斯坦 — 概念澄清、语言分析、问题本质 |
+| [freud](decision/freud/) | 弗洛伊德 — 深层动机、情绪化决策识别 |
+| [dalio](decision/dalio/) | 瑞·达利欧 — 宏观经济、经济周期、全天候策略 |
+| [graham](decision/graham/) | 本杰明·格雷厄姆 — 价值投资、安全边际 |
+| [marks](decision/marks/) | 霍华德·马克斯 — 逆向投资、市场周期、风险控制 |
+| [thiel](decision/thiel/) | 彼得·蒂尔 — 创新投资、垄断思维、从 0 到 1 |
+| [fisher](decision/fisher/) | 菲利普·费雪 — 成长股投资、长期持有 |
+| [lynch](decision/lynch/) | 彼得·林奇 — 个股分析、生活中发现机会 |
+
 ## Install
 
 ```bash
