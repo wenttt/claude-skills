@@ -98,38 +98,47 @@ grep -rn "@ConfigurationProperties\|@Value\|Apollo\|Nacos" --include="*.java" -l
 ```yaml
 # api-migration-registry.yaml — 唯一事实源
 # 每新加一个迁移项就在这里加一条。in_progress 的先留着别迁。
+# 
+# 重要：PDF 里通常只写后缀（比如 /query/user/profile），完整 URL = 配置文件的
+# baseUrl + 后缀。所以 registry 里把后缀和 base 分开记，方便后续用 grep 反查。
 
 migrations:
   - id: user-profile-001                  # 稳定 ID，日志/开关里用
     status: ready                         # ready | in_progress | skip | done
     old:
-      endpoint: /api/v1/user/profile      # 旧接口路径
+      suffix: /query/user/profile         # PDF 里写的后缀
+      base_config_key: api.user.host      # 配置文件里 base URL 的 key（用来反查代码）
       method: GET
       response_dto: UserProfileDTO        # Java 类名
     new:
       # 1 对 1
-      - endpoint: /api/v2/user/info
+      - suffix: /v2/user/info
+        base_config_key: api.user.host    # 通常和旧接口共用一个 base
         method: GET
     field_map:
-      # 旧字段名: 新字段来源（或 null / drop）
-      userId: "$.data.id"                 # 改名：新接口里叫 id
-      userName: "$.data.name"
-      nickName: null                      # 新接口废弃，置 null
-      avatar: "$.data.avatarUrl"
-      legacyScore: drop                   # 新接口不用这个字段，旧 DTO 里也不再赋值
+      # 旧字段名: 新字段来源（见下方 4 种值类型）
+      userId: "$.data.id"                 # mapped：改名，新接口里叫 id
+      userName: "$.data.name"             # mapped
+      nickName: null                      # demise：新接口明确废弃此字段，赋值 null
+      avatar: "$.data.avatarUrl"          # mapped
+      legacyFlag: "n/a"                   # missing：新接口压根没这字段，赋值字符串 "n/a"
+      legacyScore: drop                   # drop：旧 DTO 里也不再赋值，保留默认值
 
   - id: order-detail-002
     status: ready
     old:
-      endpoint: /api/v1/order/detail
+      suffix: /query/order/detail
+      base_config_key: api.order.host
       method: GET
       response_dto: OrderDetailDTO
     new:
-      # 1 对 N —— 旧接口一次查，新接口要调两个
-      - endpoint: /api/v2/order/base
+      # 1 对 N —— 旧接口一次查，新接口拆成两个。字段可能散落在 PDF 里不同接口页。
+      - suffix: /v2/order/base
+        base_config_key: api.order.host
         method: GET
         alias: base
-      - endpoint: /api/v2/order/items
+      - suffix: /v2/order/items
+        base_config_key: api.order.host
         method: GET
         alias: items
     field_map:
@@ -137,22 +146,37 @@ migrations:
       customerName: "base.$.customer.name"
       itemList: "items.$.list"            # 从另一个接口拿
       totalAmount: "base.$.amount"
-      oldDiscountRule: null               # 废弃字段
+      oldDiscountRule: null               # demise：新接口说废弃
+      oldPromoTag: "n/a"                  # missing：新接口完全没这字段
 
   - id: inventory-sync-003
     status: in_progress                    # PDF 说还没定稿 —— 不迁
     old:
-      endpoint: /api/v1/inventory/sync
+      suffix: /query/inventory/sync
+      base_config_key: api.inventory.host
 ```
+
+**field_map 的 4 种值类型（严格区分 null 和 n/a）：**
+
+| 值 | 含义 | 对应旧 DTO 字段类型 | 举例 |
+|---|---|---|---|
+| `"$.x.y"` JSONPath | mapped：从新接口响应里取 | 任意 | `userId: "$.data.id"` |
+| `null`（YAML 关键字）| **demise**：PDF 里标"废弃"，字段有含义但不再提供，代码里 `setXxx(null)` | 可空类型（String/Integer/包装类型）| `nickName: null` |
+| `"n/a"`（字符串）| **missing**：新接口完全没这字段，代码里 `setXxx("n/a")` | 字符串类型（否则类型不符）| `legacyFlag: "n/a"` |
+| `drop` | 旧 DTO 这字段也不再赋值（后续会清理） | 任意 | `legacyScore: drop` |
+
+**`null` vs `"n/a"` 的判断依据**：看 PDF。PDF 明确写"废弃/demise" → `null`；PDF 根本没列这字段 → `"n/a"`。不要自己猜。
 
 ### 1.2 注册表自检清单
 
 生成 YAML 后，逐条检查（你自己做，不问用户）：
 
 - [ ] 每个 migration 的 `old.response_dto` 的每个字段，在 `field_map` 里都出现过（不允许漏）
-- [ ] `field_map` 的 value 只能是三种形式之一：JSONPath 字符串 / `null` / `drop`
+- [ ] `field_map` 的 value 只能是四种形式之一：JSONPath 字符串 / `null` / `"n/a"` / `drop`
+- [ ] `"n/a"` 只用在字符串类型字段上（否则 set 到 `Integer` 字段会类型错误）
 - [ ] `status: in_progress` 的项只保留 `old` 段即可，`new`/`field_map` 可以留空
 - [ ] `id` 全局唯一
+- [ ] 每条 migration 的 `old.suffix` 和 `old.base_config_key` 都有值（Phase 1.5 要用来反查代码）
 
 **漏字段 = 迁移后静默丢数据 = 事故。必须严格检查。**
 
@@ -164,8 +188,140 @@ migrations:
 - in_progress: Y 条（跳过）
 - 疑似漏字段: Z 条 ——【列出来，请用户补充】
 
-请确认 api-migration-registry.yaml。确认后我开始 Phase 2。
+请确认 api-migration-registry.yaml。确认后我开始 Phase 1.5。
 ```
+
+---
+
+## Phase 1.5: 对齐 PDF 和代码 —— 后缀匹配 + 字段反查
+
+这是 PDF 式迁移特有的难点。两个子流程，都是**自动化批量匹配**，不需要人肉对着 PDF 找。
+
+### 1.5.1 后缀反查：确认 PDF 里的后缀在代码里真的用了
+
+**背景**：PDF 只写后缀（`/query/user/profile`），但代码里是 `baseUrl + suffix` 拼接的。必须反查：
+- 配置文件里的 base URL 被哪个 Java 类用了
+- 那个 Java 类里具体拼了什么后缀
+- 拼出来的后缀是否在 PDF 里 → 决定是否要迁移
+
+**批量扫描步骤**：
+
+```bash
+# Step 1: 对每条 registry 里的 base_config_key（比如 api.user.host），找代码里的引用点
+#        一次性把所有 base_config_key 都扫出来
+for key in $(yq '.migrations[].old.base_config_key' registry.yaml | sort -u); do
+    echo "=== $key ==="
+    grep -rn "${key}" --include="*.java" --include="*.yml" --include="*.properties"
+done
+```
+
+```bash
+# Step 2: 对每个使用了 base 的 Java 类，找拼接后缀的地方
+#        常见模式：字符串拼接 / String.format / StringBuilder / 模板字符串
+grep -rn -E "(userHost|orderHost|xxxHost)\s*\+\s*\"/" --include="*.java" | head -40
+grep -rn "String\.format.*\+.*\"/" --include="*.java" | head -20
+grep -rn "UriComponentsBuilder\|RequestEntity" --include="*.java" -A3 | head -30
+```
+
+```bash
+# Step 3: 提取代码里所有后缀，和 PDF 里的后缀对比
+# 把扫到的后缀整理成一列，然后和 registry 里的 old.suffix 做 diff
+```
+
+**输出一份三栏匹配表**：
+
+| 代码里实际用的后缀 | 所在文件:行 | PDF 匹配结果 |
+|---|---|---|
+| `/query/user/profile` | UserClient.java:42 | ✅ 在 PDF 里（对应 user-profile-001，ready）|
+| `/query/user/extra` | UserClient.java:58 | ⚠️ 不在 PDF 里 → 是新增的？还是 PDF 漏了？需要用户确认 |
+| `/query/user/legacy` | UserClient.java:63 | ❌ PDF 标 in_progress，本次不迁 |
+| `/some/suffix`（PDF 有但代码没）| — | 🤔 PDF 里有但代码没用，是不是死代码？|
+
+**三种异常情况必须让用户判断**，别自己做决定：
+- 代码有、PDF 没：可能是 PDF 漏了，也可能是本来就不迁的内部接口
+- 代码没、PDF 有：可能是其他仓库在用，也可能是 PDF 的陈旧条目
+- 后缀一样但参数不同：PDF 和代码里的 query string / path param 如果不一致，要单独对
+
+### 1.5.2 字段反查：1 对 N 场景下，从 DTO get 点反推需要调哪些新接口
+
+**背景**：旧接口一个调用返回所有字段，新接口拆成 N 个。PDF 里每个新接口一页，字段散落。要把"旧代码用到的字段"组装回"要调哪几个新接口"。
+
+**批量扫描步骤**：
+
+```bash
+# Step 1: 对每条 registry 里的 old.response_dto（比如 UserProfileDTO），
+#        找所有 get 点，看真实用到了哪些字段
+for dto in $(yq '.migrations[].old.response_dto' registry.yaml | sort -u); do
+    echo "=== $dto ==="
+    grep -rn "\.\(get[A-Z][a-zA-Z]*\)\(\)" --include="*.java" | grep -B1 "$dto" | head -30
+done
+```
+
+或者更精确：找出 DTO 变量，再 grep 它被 get 了哪些字段：
+
+```bash
+# 找变量名（通常首字母小写的 DTO 名）
+grep -rn "UserProfileDTO\s\+\w\+\s*=" --include="*.java"
+# 输出：UserProfileDTO profile = ...
+# 然后 grep "profile\.get" 拿到被 get 的字段
+grep -rn "profile\.get" --include="*.java"
+```
+
+**Step 2: 对照 PDF，把字段归类到各个新接口**
+
+PDF 里每个新接口有自己的字段表。对每个被 get 的旧字段：
+- 在 PDF 里搜字段名（或对照英文名）
+- 找到它属于哪个新接口
+- 记下来
+
+**Step 3: 把结果填回 registry 的 `new` 和 `field_map` 段**
+
+例如代码里 `UserProfileDTO` 被 get 了 `userId / userName / orderList / recentLogin`：
+- `userId`, `userName` → PDF 的 `/v2/user/info` 接口
+- `orderList` → PDF 的 `/v2/user/orders` 接口
+- `recentLogin` → PDF 的 `/v2/user/login-history` 接口
+
+所以 registry 里 `new` 段要列三个接口，field_map 带 alias 前缀：
+
+```yaml
+new:
+  - suffix: /v2/user/info
+    alias: info
+  - suffix: /v2/user/orders
+    alias: orders
+  - suffix: /v2/user/login-history
+    alias: loginHistory
+field_map:
+  userId: "info.$.id"
+  userName: "info.$.name"
+  orderList: "orders.$.list"
+  recentLogin: "loginHistory.$.latest"
+```
+
+**Step 4: 产出"字段 → 新接口"映射表，让用户确认**
+
+| DTO | 字段 | 旧代码 get 点 | PDF 里所属新接口 |
+|---|---|---|---|
+| UserProfileDTO | userId | ProfileController:41 | /v2/user/info |
+| UserProfileDTO | orderList | UserService:88 | /v2/user/orders |
+| UserProfileDTO | legacyFlag | UserService:92 | **未在任何新接口里找到 → "n/a"** |
+| UserProfileDTO | nickName | —（代码没 get 过）| /v2/user/info 有此字段 → 但代码没用，可 drop |
+
+**重点**：
+- 旧代码没 get 过的字段 → 考虑标 `drop`（省一次接口调用，不用从新接口取）
+- 旧代码 get 了但 PDF 任何新接口都没有 → 必然是 `"n/a"` 或 `null`，需用户判断是 demise 还是 missing
+- 一个字段出现在多个新接口里 → 需用户选权威来源（通常 PDF 会标）
+
+### 1.5.3 交付给用户
+
+Phase 1.5 结束后，交付两张表：
+
+1. **后缀匹配表**（代码里用的每个后缀 vs PDF） —— 确认迁移范围
+2. **字段 → 新接口映射表** —— 确认每个字段怎么取
+
+用户确认后，registry YAML 才算真正就绪，进 Phase 2。
+
+**禁止跳过这一步直接写代码。跳过的代价是：漏接口 / 漏字段 / 调错新接口，全部是线上事故级别。**
 
 ---
 
@@ -344,15 +500,23 @@ public class UserService {
             userApiNewUrl + "?id=" + userId, NewUserInfoResponse.class);
 
         UserProfileDTO dto = new UserProfileDTO();
-        dto.setUserId(resp.getData().getId());             // 改名
-        dto.setUserName(resp.getData().getName());         // 改名
-        dto.setNickName(null);                             // 废弃，置 null
-        dto.setAvatar(resp.getData().getAvatarUrl());      // 改名
+        dto.setUserId(resp.getData().getId());             // mapped：改名
+        dto.setUserName(resp.getData().getName());         // mapped
+        dto.setNickName(null);                             // demise：PDF 标废弃 → null
+        dto.setAvatar(resp.getData().getAvatarUrl());      // mapped
+        dto.setLegacyFlag("n/a");                          // missing：新接口完全没这字段 → "n/a"
         // legacyScore: drop —— 不赋值
         return dto;
     }
 }
 ```
+
+**为什么 `null` 和 `"n/a"` 要区分**：
+- `null` 传达的语义是"这个字段曾经有含义，现在被明确废弃了" —— 下游可以识别这个信号
+- `"n/a"` 传达的语义是"新系统根本不提供这个字段" —— 和历史数据里本来就是 null 的情况区分开
+- 两者后续的清理节奏也不同：demise 字段可能下一个版本整列下线，n/a 字段可能永远保留占位
+
+**注意：`"n/a"` 只能用在字符串字段上。** 数值/布尔字段如果 PDF 没列，用 `null`（前提是包装类型）或者和用户确认用某个默认值。
 
 **关键点：**
 - 没有新建 `UserProfileAdapter` 类
@@ -505,13 +669,17 @@ public UserProfileDTO getProfile(Long userId) {
 ## 常见翻车点
 
 1. **只改代码不改配置**：旧 `@Value` 留着没人用，迁移完忘了删，后人以为还在用
-2. **字段静默漏**：适配器里某个字段忘了 set，默认值是 0/""/null，DB 里写脏数据
-3. **1 对 N 的新接口失败处理**：某一个新接口超时，整个适配器抛异常还是降级？必须明确
+2. **字段静默漏**：翻译方法里某个字段忘了 set，默认值是 0/""/null，DB 里写脏数据
+3. **1 对 N 的新接口失败处理**：某一个新接口超时，整个翻译方法抛异常还是降级？必须明确
 4. **in_progress 的被"顺手也改了"**：registry 里 status 不是 ready 就坚决不动
 5. **废弃字段的判断分支**：字段被置 null 后，`if (dto.getNickName() != null)` 这种分支走向会变 —— Phase 2.3 必须扫完
 6. **字段类型不一致**：新接口 `amount` 是 `BigDecimal`，旧 DTO 是 `Double` —— 精度丢失或 ClassCastException
 7. **空值语义差异**：旧接口返回 `""`，新接口返回 `null`（或反过来）—— DB 非空约束、字符串比较逻辑会炸
 8. **灰度开关默认 true**：一定要默认 false，走旧路径，显式开启
+9. **PDF 后缀和代码后缀不完全一致**：PDF 写 `/query/user`，代码里拼的是 `/query/user/` 多了斜杠，grep 会漏匹配 —— 匹配时要用前缀/模糊匹配，不用严格等于
+10. **字段一个单词大小写不一致**：PDF 里字段写 `userID`，新接口返回 `userId` —— JSONPath 是大小写敏感的，必须以真实响应为准，别照抄 PDF
+11. **1 对 N 的字段归属搞错**：`orderAmount` 同时出现在两个新接口里，PDF 没说清用哪个 —— 必须用户选一个权威来源，不要自己猜
+12. **`null` 和 `"n/a"` 混用**：demise 和 missing 的语义不同，下游可能依赖这个信号做不同处理。不要图省事全写 null
 
 ---
 
@@ -519,7 +687,7 @@ public UserProfileDTO getProfile(Long userId) {
 
 你对用户的交付分四次：
 
-1. **交付一：registry YAML + 风险点清单** → 用户 review 确认
+1. **交付一：registry YAML + 后缀匹配表 + 字段反查表 + 风险点清单**（Phase 1 + 1.5 的产出）→ 用户 review 确认
 2. **交付二：挑最简单的一条 migration，在现有 Service 里加翻译方法 + 开关** → 用户 review 代码风格，确认"在现有类里改"的方式 OK
 3. **交付三：批量做其他 migration + 配置去重** → 用户跑测试
 4. **交付四：退场清理清单**（哪些旧代码/旧 `@Value`/旧 yml key 要删） → 全部 done 后执行
