@@ -167,6 +167,8 @@ migrations:
 
 **`null` vs `"n/a"` 的判断依据**：看 PDF。PDF 明确写"废弃/demise" → `null`；PDF 根本没列这字段 → `"n/a"`。不要自己猜。
 
+**字段格式假设（重要）**：PDF 不标字段格式/类型，默认**新旧字段类型一致**（旧 DTO 字段是 `String`，新接口返回的也是 `String`；旧是 `BigDecimal`，新也是 `BigDecimal`）。翻译方法里直接 `dto.setX(resp.getX())` 即可，不需要做类型转换或格式规整。如果跑起来真出现类型不兼容，再针对性处理，不预先加防御代码。
+
 ### 1.2 注册表自检清单
 
 生成 YAML 后，逐条检查（你自己做，不问用户）：
@@ -673,13 +675,11 @@ public UserProfileDTO getProfile(Long userId) {
 3. **1 对 N 的新接口失败处理**：某一个新接口超时，整个翻译方法抛异常还是降级？必须明确
 4. **in_progress 的被"顺手也改了"**：registry 里 status 不是 ready 就坚决不动
 5. **废弃字段的判断分支**：字段被置 null 后，`if (dto.getNickName() != null)` 这种分支走向会变 —— Phase 2.3 必须扫完
-6. **字段类型不一致**：新接口 `amount` 是 `BigDecimal`，旧 DTO 是 `Double` —— 精度丢失或 ClassCastException
-7. **空值语义差异**：旧接口返回 `""`，新接口返回 `null`（或反过来）—— DB 非空约束、字符串比较逻辑会炸
-8. **灰度开关默认 true**：一定要默认 false，走旧路径，显式开启
-9. **PDF 后缀和代码后缀不完全一致**：PDF 写 `/query/user`，代码里拼的是 `/query/user/` 多了斜杠，grep 会漏匹配 —— 匹配时要用前缀/模糊匹配，不用严格等于
-10. **字段一个单词大小写不一致**：PDF 里字段写 `userID`，新接口返回 `userId` —— JSONPath 是大小写敏感的，必须以真实响应为准，别照抄 PDF
-11. **1 对 N 的字段归属搞错**：`orderAmount` 同时出现在两个新接口里，PDF 没说清用哪个 —— 必须用户选一个权威来源，不要自己猜
-12. **`null` 和 `"n/a"` 混用**：demise 和 missing 的语义不同，下游可能依赖这个信号做不同处理。不要图省事全写 null
+6. **灰度开关默认 true**：一定要默认 false，走旧路径，显式开启
+7. **PDF 后缀和代码后缀不完全一致**：PDF 写 `/query/user`，代码里拼的是 `/query/user/` 多了斜杠，grep 会漏匹配 —— 匹配时要用前缀/模糊匹配，不用严格等于
+8. **字段一个单词大小写不一致**：PDF 里字段写 `userID`，新接口返回 `userId` —— JSONPath 是大小写敏感的，必须以真实响应为准，别照抄 PDF
+9. **1 对 N 的字段归属搞错**：`orderAmount` 同时出现在两个新接口里，PDF 没说清用哪个 —— 必须用户选一个权威来源，不要自己猜
+10. **`null` 和 `"n/a"` 混用**：demise 和 missing 的语义不同，下游可能依赖这个信号做不同处理。不要图省事全写 null
 
 ---
 
